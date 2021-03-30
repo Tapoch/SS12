@@ -29,11 +29,14 @@ class Game(private val world: World) {
     private val connections = mutableMapOf<DefaultWebSocketSession, User>()
     private val taskController = TaskController()
 
+    private var isPlayerChanged = false
+    private var isItemsChanged = false
+
     init {
         taskController.startCoolDownTask {
             GlobalScope.launch {
                 connections.values.forEach { it.enableMove() }
-                sendAll(CoolDownResponse(), needLog = false)
+                updateWorldToUsers()
             }
         }
     }
@@ -45,6 +48,7 @@ class Game(private val world: World) {
         send(webSocket, WorldResponse(world.map))
         send(webSocket, PlayersResponse(connections.values.toTypedArray()))
         send(webSocket, ItemsResponse(world.items.values))
+        isPlayerChanged = true
 
         logger.debug("Action connect")
     }
@@ -52,7 +56,7 @@ class Game(private val world: World) {
     suspend fun actionDisconnect(webSocket: DefaultWebSocketSession) {
         connections.remove(webSocket)
 
-        sendAll(PlayersResponse(connections.values.toTypedArray()))
+        isPlayerChanged = true
 
         logger.debug("Action disconnect")
     }
@@ -67,7 +71,8 @@ class Game(private val world: World) {
         val moveDirection = MoveDirection.fromString(moveData.direction)
         val moveResult = world.moveUser(user, moveDirection)
         if (moveResult.isMoved) {
-            sendAll(PlayersResponse(connections.values.toTypedArray()))
+            send(webSocket, PlayersResponse(connections.values.toTypedArray()))
+            isPlayerChanged = true
             logger.debug("Player ${user.name} moved to ${moveData.direction}")
 
             if (moveResult.isPickedUpItem) {
@@ -75,14 +80,26 @@ class Game(private val world: World) {
                     taskController.startLampTimerTask(user) { userLampRemove ->
                         GlobalScope.launch {
                             userLampRemove.removeItem(Item.Type.LAMP)
-                            sendAll(PlayersResponse(connections.values.toTypedArray()))
                         }
                     }
                 }
-                sendAll(ItemsResponse(world.items.values))
+                isItemsChanged = true
+                send(webSocket, ItemsResponse(world.items.values))
             }
         } else {
             logger.debug("Incorrect move: ${moveData.direction}")
+        }
+    }
+
+    private suspend fun updateWorldToUsers() {
+        sendAll(CoolDownResponse(), needLog = false)
+        if (isPlayerChanged) {
+            sendAll(PlayersResponse(connections.values.toTypedArray()))
+            isPlayerChanged = false
+        }
+        if (isItemsChanged) {
+            sendAll(ItemsResponse(world.items.values))
+            isItemsChanged = false
         }
     }
 
