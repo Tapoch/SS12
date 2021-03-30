@@ -17,7 +17,6 @@ import ru.alex.ss12.request.data.MoveData
 import ru.alex.ss12.response.CoolDownResponse
 import ru.alex.ss12.response.InitResponse
 import ru.alex.ss12.response.PlayersResponse
-import ru.alex.ss12.response.ResponseType
 
 class Game(private val world: World) {
 
@@ -28,7 +27,7 @@ class Game(private val world: World) {
     init {
         CoolDownTimerTask {
             GlobalScope.launch {
-                sendAll(CoolDownResponse(ResponseType.COOLDOWN.typeName).toJson())
+                sendAll(CoolDownResponse().toJson(), needLog = false)
             }
         }.start()
     }
@@ -37,9 +36,9 @@ class Game(private val world: World) {
         val user = LocalStorage.getUser(initData.username)
         connections[webSocket] = user
 
-        val response = InitResponse(ResponseType.WORLD.typeName, world.map).toJson()
-
+        val response = InitResponse(world.map).toJson()
         send(webSocket, response)
+        send(webSocket, PlayersResponse(connections.values.toTypedArray()).toJson())
 
         logger.debug("Action connect")
     }
@@ -47,7 +46,7 @@ class Game(private val world: World) {
     suspend fun actionDisconnect(webSocket: DefaultWebSocketSession) {
         connections.remove(webSocket)
 
-        val response = PlayersResponse(ResponseType.PLAYERS.typeName, connections.values.toTypedArray()).toJson()
+        val response = PlayersResponse(connections.values.toTypedArray()).toJson()
         sendAll(response)
 
         logger.debug("Action disconnect")
@@ -63,7 +62,7 @@ class Game(private val world: World) {
         val moveDirection = MoveDirection.fromString(moveData.direction)
         if (world.isCanMove(user, moveDirection)) {
             user.move(moveDirection)
-            val response = PlayersResponse(ResponseType.PLAYERS.typeName, connections.values.toTypedArray()).toJson()
+            val response = PlayersResponse(connections.values.toTypedArray()).toJson()
             sendAll(response)
             logger.debug("Player ${user.name} moved to ${moveData.direction}")
         } else {
@@ -71,13 +70,17 @@ class Game(private val world: World) {
         }
     }
 
-    private suspend fun send(webSocket: DefaultWebSocketSession, text: String) {
-        logger.debug("Send:\n$text")
+    private suspend fun send(webSocket: DefaultWebSocketSession, text: String, needLog: Boolean = true) {
+        if (needLog) {
+            logger.debug("Send:\n$text")
+        }
         webSocket.send(text)
     }
 
-    private suspend fun sendAll(text: String) {
-        logger.debug("Send all:\n$text")
+    private suspend fun sendAll(text: String, needLog: Boolean = true) {
+        if (needLog) {
+            logger.debug("Send all:\n$text")
+        }
         connections.forEach { it.key.send(text) }
     }
 }

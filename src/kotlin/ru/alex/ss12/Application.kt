@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory
 import ru.alex.ss12.game.Game
 import ru.alex.ss12.game.model.World
 import ru.alex.ss12.request.Request
-import ru.alex.ss12.request.RequestType
 import ru.alex.ss12.request.data.InitData
 import ru.alex.ss12.request.data.MoveData
 
@@ -62,11 +61,11 @@ fun Application.module() {
 
                         val request = gson.fromJson(text, Request::class.java)
                         when (request.type) {
-                            RequestType.INIT.typeName -> {
+                            Request.Type.INIT -> {
                                 val initData = gson.fromJson(request.data, InitData::class.java)
                                 game.actionConnect(this, initData)
                             }
-                            RequestType.MOVE.typeName -> {
+                            Request.Type.MOVE -> {
                                 val moveData = gson.fromJson(request.data, MoveData::class.java)
                                 game.actionMove(this, moveData)
                             }
