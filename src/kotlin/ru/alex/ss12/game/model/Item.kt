@@ -6,6 +6,7 @@ abstract class Item(val type: Type) {
     abstract val y: Int
 
     enum class Type {
-        LAMP
+        LAMP,
+        RADIO
     }
 }

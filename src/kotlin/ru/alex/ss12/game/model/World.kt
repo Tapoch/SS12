@@ -34,7 +34,7 @@ class World {
         intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
     )
     val items: MutableMap<Point, Item>
-    private val itemsSpawnCoordinates = arrayOf(Point(17, 10), Point(15, 8))
+    private val itemsSpawnCoordinates = arrayOf(Point(1, 3), Point(1, 4), Point(2, 3), Point(2, 4), Point(17, 10), Point(15, 8))
 
     init {
         items = initItems()
@@ -49,7 +49,7 @@ class World {
             MoveDirection.LEFT -> map[user.y][user.x - 1] != 1
             MoveDirection.RIGHT -> map[user.y][user.x + 1] != 1
             else -> return MoveResult(isMoved = false)
-        }
+        } and user.isMoveEnabled()
 
         if (isCanMove) {
             user.move(direction)
@@ -57,7 +57,7 @@ class World {
 
             val userPoint = Point(user.x, user.y)
             val item = items[userPoint]
-            if (item != null){
+            if (item != null && !user.items.contains(item.type)){
                 user.addItem(item)
                 items.remove(userPoint)
                 moveResult.isPickedUpItem = true
@@ -70,7 +70,10 @@ class World {
     private fun initItems(): MutableMap<Point, Item> {
         val result = mutableMapOf<Point, Item>()
         itemsSpawnCoordinates.forEach {
-            val item = Lamp(it.x, it.y)
+            val item = when (Item.Type.values().random()) {
+                Item.Type.LAMP -> LampItem(it.x, it.y)
+                Item.Type.RADIO -> RadioItem(it.x, it.y)
+            }
             result[it] = item
         }
         return result

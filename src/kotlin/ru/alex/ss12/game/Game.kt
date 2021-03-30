@@ -30,6 +30,7 @@ class Game(private val world: World) {
     init {
         CoolDownTimerTask {
             GlobalScope.launch {
+                connections.values.forEach { it.enableMove() }
                 sendAll(CoolDownResponse(), needLog = false)
             }
         }.start()
