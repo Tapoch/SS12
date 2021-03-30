@@ -23,6 +23,10 @@ data class User(val name: String, var x: Int = 1, var y: Int = 1, val items: Mut
         items.add(item.type)
     }
 
+    fun removeItem(typeItem: Item.Type) {
+        items.remove(typeItem)
+    }
+
     fun enableMove() {
         isMoveEnabled = true
     }

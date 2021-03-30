@@ -9,9 +9,10 @@ import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 
 import ru.alex.ss12.db.LocalStorage
+import ru.alex.ss12.game.model.Item
 import ru.alex.ss12.game.model.MoveDirection
 import ru.alex.ss12.game.model.World
-import ru.alex.ss12.game.tasks.CoolDownTimerTask
+import ru.alex.ss12.game.tasks.TaskController
 import ru.alex.ss12.model.User
 import ru.alex.ss12.request.data.InitData
 import ru.alex.ss12.request.data.MoveData
@@ -26,14 +27,15 @@ class Game(private val world: World) {
     private val logger = LoggerFactory.getLogger(Game::class.java)
 
     private val connections = mutableMapOf<DefaultWebSocketSession, User>()
+    private val taskController = TaskController()
 
     init {
-        CoolDownTimerTask {
+        taskController.startCoolDownTask {
             GlobalScope.launch {
                 connections.values.forEach { it.enableMove() }
                 sendAll(CoolDownResponse(), needLog = false)
             }
-        }.start()
+        }
     }
 
     suspend fun actionConnect(webSocket: DefaultWebSocketSession, initData: InitData) {
@@ -69,6 +71,14 @@ class Game(private val world: World) {
             logger.debug("Player ${user.name} moved to ${moveData.direction}")
 
             if (moveResult.isPickedUpItem) {
+                if (user.items.contains(Item.Type.LAMP)) {
+                    taskController.startLampTimerTask(user) { userLampRemove ->
+                        GlobalScope.launch {
+                            userLampRemove.removeItem(Item.Type.LAMP)
+                            sendAll(PlayersResponse(connections.values.toTypedArray()))
+                        }
+                    }
+                }
                 sendAll(ItemsResponse(world.items.values))
             }
         } else {
