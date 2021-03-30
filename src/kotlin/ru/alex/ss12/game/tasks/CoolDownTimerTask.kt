@@ -1,4 +1,4 @@
-package ru.alex.ss12.game
+package ru.alex.ss12.game.tasks
 
 import org.slf4j.LoggerFactory
 import java.lang.Exception
@@ -21,7 +21,9 @@ class CoolDownTimerTask(private val action:() -> Unit) : TimerTask() {
 
     fun start() {
         try {
-            COOL_DOWN_TIMER.schedule(this, 0, COOL_DOWN_TIME_IN_MS)
+            COOL_DOWN_TIMER.schedule(this, 0,
+                COOL_DOWN_TIME_IN_MS
+            )
         } catch (e: IllegalStateException) {
             logger.error("Timer cancelled!")
             e.printStackTrace()
