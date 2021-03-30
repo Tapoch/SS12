@@ -9,7 +9,7 @@ import java.util.TimerTask
 class CoolDownTimerTask(private val action:() -> Unit) : TimerTask() {
 
     companion object {
-        private const val COOL_DOWN_TIME_IN_MS = 1000L
+        private const val COOL_DOWN_TIME_IN_MS = 400L
         private val COOL_DOWN_TIMER = Timer("Cooldown_timer")
     }
 

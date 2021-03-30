@@ -15,8 +15,10 @@ import ru.alex.ss12.model.User
 import ru.alex.ss12.request.data.InitData
 import ru.alex.ss12.request.data.MoveData
 import ru.alex.ss12.response.CoolDownResponse
-import ru.alex.ss12.response.InitResponse
+import ru.alex.ss12.response.WorldResponse
+import ru.alex.ss12.response.ItemsResponse
 import ru.alex.ss12.response.PlayersResponse
+import ru.alex.ss12.response.Response
 
 class Game(private val world: World) {
 
@@ -27,7 +29,7 @@ class Game(private val world: World) {
     init {
         CoolDownTimerTask {
             GlobalScope.launch {
-                sendAll(CoolDownResponse().toJson(), needLog = false)
+                sendAll(CoolDownResponse(), needLog = false)
             }
         }.start()
     }
@@ -36,9 +38,9 @@ class Game(private val world: World) {
         val user = LocalStorage.getUser(initData.username)
         connections[webSocket] = user
 
-        val response = InitResponse(world.map).toJson()
-        send(webSocket, response)
-        send(webSocket, PlayersResponse(connections.values.toTypedArray()).toJson())
+        send(webSocket, WorldResponse(world.map))
+        send(webSocket, PlayersResponse(connections.values.toTypedArray()))
+        send(webSocket, ItemsResponse(world.items.values))
 
         logger.debug("Action connect")
     }
@@ -46,8 +48,7 @@ class Game(private val world: World) {
     suspend fun actionDisconnect(webSocket: DefaultWebSocketSession) {
         connections.remove(webSocket)
 
-        val response = PlayersResponse(connections.values.toTypedArray()).toJson()
-        sendAll(response)
+        sendAll(PlayersResponse(connections.values.toTypedArray()))
 
         logger.debug("Action disconnect")
     }
@@ -60,24 +61,29 @@ class Game(private val world: World) {
         }
 
         val moveDirection = MoveDirection.fromString(moveData.direction)
-        if (world.isCanMove(user, moveDirection)) {
-            user.move(moveDirection)
-            val response = PlayersResponse(connections.values.toTypedArray()).toJson()
-            sendAll(response)
+        val moveResult = world.moveUser(user, moveDirection)
+        if (moveResult.isMoved) {
+            sendAll(PlayersResponse(connections.values.toTypedArray()))
             logger.debug("Player ${user.name} moved to ${moveData.direction}")
+
+            if (moveResult.isPickedUpItem) {
+                sendAll(ItemsResponse(world.items.values))
+            }
         } else {
             logger.debug("Incorrect move: ${moveData.direction}")
         }
     }
 
-    private suspend fun send(webSocket: DefaultWebSocketSession, text: String, needLog: Boolean = true) {
+    private suspend fun send(webSocket: DefaultWebSocketSession, response: Response, needLog: Boolean = true) {
+        val text = response.toJson()
         if (needLog) {
             logger.debug("Send:\n$text")
         }
         webSocket.send(text)
     }
 
-    private suspend fun sendAll(text: String, needLog: Boolean = true) {
+    private suspend fun sendAll(response: Response, needLog: Boolean = true) {
+        val text = response.toJson()
         if (needLog) {
             logger.debug("Send all:\n$text")
         }
