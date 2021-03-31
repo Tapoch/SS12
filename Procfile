@@ -1,1 +1,1 @@
-web: java -jar build/libs/SS12-0.0.1-SNAPSHOT-all.jar
+web: java -Dserver.port=$PORT -jar build/libs/SS12-0.0.1-SNAPSHOT-all.jar
