@@ -1,0 +1,6 @@
+{
+  "name": "Space Station 12",
+  "description": "Server",
+  "image": "heroku/java",
+  "addons": []
+}
