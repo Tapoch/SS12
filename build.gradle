@@ -1,5 +1,6 @@
 apply plugin: 'kotlin'
 apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 buildscript {
     repositories {
@@ -8,12 +9,25 @@ buildscript {
     
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+	classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
     }
 }
 
 group 'ru.alex.ss12'
 version '0.0.1-SNAPSHOT'
-mainClassName = "io.ktor.server.netty.EngineMain"
+mainClassName = "ru.alex.ss12.ApplicationKt"
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+}
+
+jar {
+  manifest {
+    attributes 'Main-Class': mainClassName
+  }
+}
 
 sourceSets {
     main.kotlin.srcDirs = ['src/kotlin']
@@ -41,3 +55,6 @@ dependencies {
 
     testImplementation "io.ktor:ktor-server-tests:$ktor_version"
 }
+
+task stage(dependsOn: ['build', 'clean'])
+build.mustRunAfter clean
